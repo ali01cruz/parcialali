@@ -112,194 +112,194 @@ describe('Request', () => {
     // not reassign the array.
     server.posts.splice(0, server.posts.length);
   });
-
+  
   describe(`${METHOD_POST} ${PATH}`, () => {
-    it('Agrega un nuevo Post', () => {
-      const post = { author: 'Juan', title: 'first title', contents: 'first contents' };
-      return addPost(post)
-        .then((postReturned) => {
-          expect(postReturned).to.deep.equal(post);
-        });
+      it('Agrega un nuevo Post', () => {
+        const post = { author: 'Juan', title: 'first title', contents: 'first contents' };
+        return addPost(post)
+          .then((postReturned) => {
+            expect(postReturned).to.deep.equal(post);
+          });
+      });
+
+      it('Informa que falta el parámetro `author`', () => {
+        return req(METHOD_POST, STATUS_USER_ERROR, { contents: 'contents', title:'title'});
+      });
+
+      it('Informa que falta el parámetro `title`', () => {
+        return req(METHOD_POST, STATUS_USER_ERROR, { contents: 'contents', author:'author'});
+      });
+
+      it('Informa que falta el parámetro `contents`', () => {
+        return req(METHOD_POST, STATUS_USER_ERROR, { title: 'title', author:'author'});
+      });
     });
 
-    it('Informa que falta el parámetro `author`', () => {
-      return req(METHOD_POST, STATUS_USER_ERROR, { contents: 'contents', title:'title'});
+    describe(`${METHOD_POST} ${PATH}/author/:author`, () => {
+      it('Agrega un nuevo Post', () => {
+        const post = {title: 'first title', contents: 'first contents' };
+        req(METHOD_POST, STATUS_OK, post, `${PATH}/author/Mariana`)
+            .then((res)=> {
+              expect(res).to.deep.equal({title: 'first title', contents: 'first contents', id:res.id, author:'Mariana'});
+            })
+      });
+
+      it('Informa que falta el parámetro `title`', () => {
+        return req(METHOD_POST, STATUS_USER_ERROR, { contents: 'contents'}, `${PATH}/author/Mariana`);
+      });
+
+      it('Informa que falta el parámetro `contents`', () => {
+        return req(METHOD_POST, STATUS_USER_ERROR, { title: 'title'}, `${PATH}/author/Mariana`);
+      });
     });
 
-    it('Informa que falta el parámetro `title`', () => {
-      return req(METHOD_POST, STATUS_USER_ERROR, { contents: 'contents', author:'author'});
-    });
+    describe(`${METHOD_GET} ${PATH}`, () => {
+      it('Obtiene el listado de Posts', () => {
+        return req(METHOD_GET, STATUS_OK)
+          .then(posts => expect(posts).to.have.length(0));
+      });
 
-    it('Informa que falta el parámetro `contents`', () => {
-      return req(METHOD_POST, STATUS_USER_ERROR, { title: 'title', author:'author'});
-    });
-  });
+      it('Filtra los Posts por `title` si el parámetro `term` existe', () => {
+        const posts = [
+          { author: 'first author', title: 'first title', contents: 'contents' },
+          { author: 'second author', title: 'second', contents: 'contents' },
+          { author: 'third author',title: 'third title', contents: 'contents' },
+        ];
 
-  describe(`${METHOD_POST} ${PATH}/author/:author`, () => {
-    it('Agrega un nuevo Post', () => {
-      const post = {title: 'first title', contents: 'first contents' };
-      req(METHOD_POST, STATUS_OK, post, `${PATH}/author/Mariana`)
-          .then((res)=> {
-            expect(res).to.deep.equal({title: 'first title', contents: 'first contents', id:res.id, author:'Mariana'});
-          })
-    });
+        return Promise.all(posts.map(p => addPost(p)))
+          .then(() => req(METHOD_GET, STATUS_OK, null, `${PATH}?term=title`))
+          .then((found) => {
+            expect(found).to.have.length(2);
+            expect(found).to.deep.include(posts[0]);
+            expect(found).to.deep.include(posts[2]);
+          });
+      });
 
-    it('Informa que falta el parámetro `title`', () => {
-      return req(METHOD_POST, STATUS_USER_ERROR, { contents: 'contents'}, `${PATH}/author/Mariana`);
-    });
+      it('Filtra los Posts por `contents` si el parámetro `term` existe', () => {
+        const posts = [
+          { author: 'author', title: 'title', contents: 'hi there' },
+          { author: 'author', title: 'title', contents: 'hello' },
+          { author: 'author', title: 'title', contents: 'hey there' },
+        ];
 
-    it('Informa que falta el parámetro `contents`', () => {
-      return req(METHOD_POST, STATUS_USER_ERROR, { title: 'title'}, `${PATH}/author/Mariana`);
-    });
-  });
-
-  describe(`${METHOD_GET} ${PATH}`, () => {
-    it('Obtiene el listado de Posts', () => {
-      return req(METHOD_GET, STATUS_OK)
-        .then(posts => expect(posts).to.have.length(0));
-    });
-
-    it('Filtra los Posts por `title` si el parámetro `term` existe', () => {
-      const posts = [
-        { author: 'first author', title: 'first title', contents: 'contents' },
-        { author: 'second author', title: 'second', contents: 'contents' },
-        { author: 'third author',title: 'third title', contents: 'contents' },
-      ];
-
-      return Promise.all(posts.map(p => addPost(p)))
-        .then(() => req(METHOD_GET, STATUS_OK, null, `${PATH}?term=title`))
-        .then((found) => {
-          expect(found).to.have.length(2);
-          expect(found).to.deep.include(posts[0]);
-          expect(found).to.deep.include(posts[2]);
-        });
-    });
-
-    it('Filtra los Posts por `contents` si el parámetro `term` existe', () => {
-      const posts = [
-        { author: 'author', title: 'title', contents: 'hi there' },
-        { author: 'author', title: 'title', contents: 'hello' },
-        { author: 'author', title: 'title', contents: 'hey there' },
-      ];
-
-      return Promise.all(posts.map(p => addPost(p)))
-        .then(() => req(METHOD_GET, STATUS_OK, null, `${PATH}?term=hello`))
-        .then((found) => {
-          expect(found).to.have.length(1);
-          expect(found).to.deep.include(posts[1]);
-        });
-    });
-  });
-
-  describe (`${METHOD_GET} ${PATH}/:author`, ()=> {
-    it('Si el autor no tiene ningun Post, devuelve un mensaje de error', ()=> {
-      return req(METHOD_GET, STATUS_USER_ERROR, null,`${PATH}/1`);
-    });
-
-    it('Si el autor no tiene ningun Post, devuelve un mensaje de error', ()=>{
-      const posts = [
-        { author: 'author', title: 'title', contents: 'hi there' },
-        { author: 'author', title: 'title', contents: 'hello' },
-        { author: 'author', title: 'title', contents: 'hey there' },
-      ];
-
-      return Promise.all(posts.map(p => addPost(p)))
-          .then(() => req(METHOD_GET, STATUS_USER_ERROR, null, `${PATH}/Martina`));
-    });
-
-    it('Si Martina tiene Post a su nombre, los devuelve', () => {
-      const posts = [
-        { author: 'author', title: 'title', contents: 'hi there' },
-        { author: 'Martina', title: 'title', contents: 'hello' },
-        { author: 'author', title: 'title', contents: 'hey there' },
-      ];
-
-      return Promise.all(posts.map(p => addPost(p)))
-          .then(() => req(METHOD_GET, STATUS_OK, null, `${PATH}/Martina`))
-          .then((found)=> {
+        return Promise.all(posts.map(p => addPost(p)))
+          .then(() => req(METHOD_GET, STATUS_OK, null, `${PATH}?term=hello`))
+          .then((found) => {
             expect(found).to.have.length(1);
             expect(found).to.deep.include(posts[1]);
           });
+      });
+    });
+    
+    describe (`${METHOD_GET} ${PATH}/:author`, ()=> {
+      it('Si el autor no tiene ningun Post, devuelve un mensaje de error', ()=> {
+        return req(METHOD_GET, STATUS_USER_ERROR, null,`${PATH}/1`);
+      });
+
+      it('Si el autor no tiene ningun Post, devuelve un mensaje de error', ()=>{
+        const posts = [
+          { author: 'author', title: 'title', contents: 'hi there' },
+          { author: 'author', title: 'title', contents: 'hello' },
+          { author: 'author', title: 'title', contents: 'hey there' },
+        ];
+
+        return Promise.all(posts.map(p => addPost(p)))
+            .then(() => req(METHOD_GET, STATUS_USER_ERROR, null, `${PATH}/Martina`));
+      });
+
+      it('Si Martina tiene Post a su nombre, los devuelve', () => {
+        const posts = [
+          { author: 'author', title: 'title', contents: 'hi there' },
+          { author: 'Martina', title: 'title', contents: 'hello' },
+          { author: 'author', title: 'title', contents: 'hey there' },
+        ];
+
+        return Promise.all(posts.map(p => addPost(p)))
+            .then(() => req(METHOD_GET, STATUS_OK, null, `${PATH}/Martina`))
+            .then((found)=> {
+              expect(found).to.have.length(1);
+              expect(found).to.deep.include(posts[1]);
+            });
+      });
+
+      it('Si el Juan tiene Post a su nombre, los devuelve', () => {
+        const posts = [
+          { author: 'Juan', title: 'title', contents: 'hi there' },
+          { author: 'Martina', title: 'title', contents: 'hello' },
+          { author: 'Juan', title: 'title', contents: 'hey there' },
+        ];
+
+        return Promise.all(posts.map(p => addPost(p)))
+            .then(() => req(METHOD_GET, STATUS_OK, null, `${PATH}/Juan`))
+            .then((found)=> {
+              expect(found).to.have.length(2);
+              expect(found).to.deep.include(posts[0], posts[3]);
+            });
+      });
     });
 
-    it('Si el Juan tiene Post a su nombre, los devuelve', () => {
-      const posts = [
-        { author: 'Juan', title: 'title', contents: 'hi there' },
-        { author: 'Martina', title: 'title', contents: 'hello' },
-        { author: 'Juan', title: 'title', contents: 'hey there' },
-      ];
+    describe(`${METHOD_GET} ${PATH}/:author/:title`, () => {
+      it('Retorna todos los Post del autor `Martina`', () => {
+        const posts = [
+          { author: 'author', title: 'title', contents: 'hi there' },
+          { author: 'Martina', title: 'title', contents: 'hello' },
+          { author: 'Martina', title: 'title', contents: 'hey there' },
+        ];
 
-      return Promise.all(posts.map(p => addPost(p)))
-          .then(() => req(METHOD_GET, STATUS_OK, null, `${PATH}/Juan`))
-          .then((found)=> {
-            expect(found).to.have.length(2);
-            expect(found).to.deep.include(posts[0], posts[3]);
-          });
-    });
-  });
+        return Promise.all(posts.map(p => addPost(p)))
+            .then(() => req(METHOD_GET, STATUS_OK, null, `${PATH}/Martina`))
+            .then((found) => {
+              expect(found).to.have.length(2);
+              expect(found).to.deep.include(posts[1], posts[2]);
+            });
+      });
 
-  describe(`${METHOD_GET} ${PATH}/:author/:title`, () => {
-    it('Retorna todos los Post del autor `Martina`', () => {
-      const posts = [
-        { author: 'author', title: 'title', contents: 'hi there' },
-        { author: 'Martina', title: 'title', contents: 'hello' },
-        { author: 'Martina', title: 'title', contents: 'hey there' },
-      ];
+      it('Retorna todos los Post que correspondan al autor `Maria` con titulo `Un titulo`', ()=> {
+        const posts = [
+          { author: 'Maria', title: 'Un titulo', contents: 'hi there' },
+          { author: 'Juan', title: 'title', contents: 'hello' },
+          { author: 'Martina', title: 'hey there title', contents: 'hey there' },
+          { author: 'Maria', title: 'Un titulo', contents: 'another hi there' },
+        ];
 
-      return Promise.all(posts.map(p => addPost(p)))
-          .then(() => req(METHOD_GET, STATUS_OK, null, `${PATH}/Martina`))
-          .then((found) => {
-            expect(found).to.have.length(2);
-            expect(found).to.deep.include(posts[1], posts[2]);
-          });
-    });
+        return Promise.all(posts.map(p => addPost(p)))
+            .then(() => req(METHOD_GET, STATUS_OK, null, `${PATH}/Maria/Un%20titulo`))
+            .then((found) => {
+              expect(found).to.have.length(2);
+              expect(found).to.deep.include(posts[0], posts[2]);
+            });
+      });
 
-    it('Retorna todos los Post que correspondan al autor `Maria` con titulo `Un titulo`', ()=> {
-      const posts = [
-        { author: 'Maria', title: 'Un titulo', contents: 'hi there' },
-        { author: 'Juan', title: 'title', contents: 'hello' },
-        { author: 'Martina', title: 'hey there title', contents: 'hey there' },
-        { author: 'Maria', title: 'Un titulo', contents: 'another hi there' },
-      ];
+      it('Si no hay ningun match para el autor `Juana` y titulo `Un titulo` mostrar mensaje de error', ()=> {
+        const posts = [
+          { author: 'Maria', title: 'Un titulo', contents: 'hi there' },
+          { author: 'Juana', title: 'title', contents: 'hello' },
+          { author: 'Martina', title: 'hey there title', contents: 'hey there' },
+          { author: 'Maria', title: 'Un titulo', contents: 'another hi there' },
+        ];
 
-      return Promise.all(posts.map(p => addPost(p)))
-          .then(() => req(METHOD_GET, STATUS_OK, null, `${PATH}/Maria/Un%20titulo`))
-          .then((found) => {
-            expect(found).to.have.length(2);
-            expect(found).to.deep.include(posts[0], posts[2]);
-          });
-    });
+        return Promise.all(posts.map(p => addPost(p)))
+            .then(() => req(METHOD_GET, STATUS_USER_ERROR, null, `${PATH}/Juana/Un%20titulo`))
+            .then((found) => {
+              expect(found).to.deep.equal({error: "No existe ningun post con dicho titulo y autor indicado"})
+            });
+      });
 
-    it('Si no hay ningun match para el autor `Juana` y titulo `Un titulo` mostrar mensaje de error', ()=> {
-      const posts = [
-        { author: 'Maria', title: 'Un titulo', contents: 'hi there' },
-        { author: 'Juana', title: 'title', contents: 'hello' },
-        { author: 'Martina', title: 'hey there title', contents: 'hey there' },
-        { author: 'Maria', title: 'Un titulo', contents: 'another hi there' },
-      ];
+      it('Si no hay ningun match para el autor `Juana` y titulo `title` mostrar mensaje de error', ()=> {
+        const posts = [
+          { author: 'Maria', title: 'Un titulo', contents: 'hi there' },
+          { author: 'Juan', title: 'title', contents: 'hello' },
+          { author: 'Martina', title: 'hey there title', contents: 'hey there' },
+          { author: 'Maria', title: 'Un titulo', contents: 'another hi there' },
+        ];
 
-      return Promise.all(posts.map(p => addPost(p)))
-          .then(() => req(METHOD_GET, STATUS_USER_ERROR, null, `${PATH}/Juana/Un%20titulo`))
-          .then((found) => {
-            expect(found).to.deep.equal({error: "No existe ningun post con dicho titulo y autor indicado"})
-          });
-    });
-
-    it('Si no hay ningun match para el autor `Juana` y titulo `title` mostrar mensaje de error', ()=> {
-      const posts = [
-        { author: 'Maria', title: 'Un titulo', contents: 'hi there' },
-        { author: 'Juan', title: 'title', contents: 'hello' },
-        { author: 'Martina', title: 'hey there title', contents: 'hey there' },
-        { author: 'Maria', title: 'Un titulo', contents: 'another hi there' },
-      ];
-
-      return Promise.all(posts.map(p => addPost(p)))
-          .then(() => req(METHOD_GET, STATUS_USER_ERROR, null, `${PATH}/Juana/title`))
-          .then((found) => {
-            expect(found).to.deep.equal({error: "No existe ningun post con dicho titulo y autor indicado"})
-          });
-    })
-  });
+        return Promise.all(posts.map(p => addPost(p)))
+            .then(() => req(METHOD_GET, STATUS_USER_ERROR, null, `${PATH}/Juana/title`))
+            .then((found) => {
+              expect(found).to.deep.equal({error: "No existe ningun post con dicho titulo y autor indicado"})
+            });
+      })
+    }); 
 
   describe(`${METHOD_PUT} ${PATH}`, () => {
     it('Actualiza un Post existente', () => {
@@ -414,7 +414,5 @@ describe('Request', () => {
           });
     })
   }) 
-
-
 
 });

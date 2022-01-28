@@ -84,7 +84,7 @@ server.get('/posts/:author',function(req, res){
   const array = posts.filter((e)=>
           e.author === author
       )
-  if(array){
+  if(array.length > 0){
       return res.json(array)
   }else{
     return res.status(STATUS_USER_ERROR).json({error: "No existe ningun post del autor indicado"})
@@ -99,7 +99,7 @@ server.get('/posts/:author/:title',function(req, res){
   const array = posts.filter((e)=>
           e.author === author && e.title === title
       )
-  if(array){
+  if(array.length >0){
       return res.json(array)
   }else{
     return res.status(STATUS_USER_ERROR).json({error: "No existe ningun post con dicho titulo y autor indicado"})
@@ -135,23 +135,28 @@ server.get('/posts/:author/:title',function(req, res){
 
 server.put('/posts',function(req, res){
 
-  const {id ,title ,contents} = req.body
+  const {id ,author, title ,contents} = req.body
   if(id && title && contents){
     const array = posts.filter((e)=>
           e.id === id
       )
-    if(array){
+    if(array.length > 0 ){
+
+      let objeto ;
       var doubles = posts.map(function(x) {
         if(x.id == id){
           x.title =title
           x.contents =contents
+          objeto = x
         }
         return x;
       });
       posts = doubles
-      return res.json({ success: true });
+      return res.json(objeto);
+    }else{
+     
+      return res.status(STATUS_USER_ERROR).json({error: "No se ENCONTRO EL ID"})
     }
-    return res.status(STATUS_USER_ERROR).json({error: "el `id` Nocorresponde con un Post existente"})
     
   }
   return res.status(STATUS_USER_ERROR).json({error: "No se recibieron los parámetros necesarios para modificar el Post"})
