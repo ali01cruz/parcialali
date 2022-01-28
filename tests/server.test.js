@@ -349,7 +349,7 @@ describe('Request', () => {
           return req(METHOD_PUT, STATUS_USER_ERROR, body);
         });
     });
-  });
+  }); 
 
   describe(`${METHOD_DELETE} ${PATH}`, () => {
     it('Elimina un Post existente', () => {
@@ -378,7 +378,8 @@ describe('Request', () => {
     it('Informa que el `id` indicado no corresponde con un Post existente', () => {
       return req(METHOD_DELETE, STATUS_USER_ERROR, { id: 1 });
     });
-  });
+  }); 
+
 
   describe(`${METHOD_DELETE} /author`, () => {
     it('Informa que falta el parámetro `author`', () => {
@@ -412,5 +413,8 @@ describe('Request', () => {
             expect(found).to.deep.include(posts[1], posts[2]);
           });
     })
-  })
+  }) 
+
+
+
 });
